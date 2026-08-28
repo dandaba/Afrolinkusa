@@ -125,6 +125,46 @@ def submit_business(data: dict) -> bool:
         return False
 
 
+def fetch_by_status(status: str) -> pd.DataFrame:
+    """Fetch all businesses with a given status (pending / approved / rejected)."""
+    try:
+        result = (
+            supabase.table("afrousa_business")
+            .select("*")
+            .eq("status", status)
+            .order("created_at", desc=True)
+            .execute()
+        )
+        return pd.DataFrame(result.data)
+    except Exception as e:
+        st.error(f"Could not load submissions: {e}")
+        return pd.DataFrame()
+
+
+def update_status(business_id, new_status: str) -> bool:
+    """Approve or reject a business by updating its status."""
+    try:
+        supabase.table("afrousa_business").update(
+            {"status": new_status}
+        ).eq("id", business_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Update failed: {e}")
+        return False
+
+
+def toggle_verified(business_id, verified: bool) -> bool:
+    """Mark a business as verified/unverified."""
+    try:
+        supabase.table("afrousa_business").update(
+            {"is_verified": verified}
+        ).eq("id", business_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"Update failed: {e}")
+        return False
+
+
 # ============================================================
 # 5. SESSION STATE
 # ============================================================
@@ -134,6 +174,8 @@ if "prefill_address" not in st.session_state:
     st.session_state.prefill_address = ""
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = 0
+if "admin_authed" not in st.session_state:
+    st.session_state.admin_authed = False
 
 # ============================================================
 # 6. UI
@@ -141,7 +183,7 @@ if "active_tab" not in st.session_state:
 st.title("🌍 African Business Directory")
 st.caption("Discover African-owned restaurants, retail, and services across the United States")
 
-tab_browse, tab_add = st.tabs(["🔍 Browse Directory", "➕ Add Your Business"])
+tab_browse, tab_add, tab_admin = st.tabs(["🔍 Browse Directory", "➕ Add Your Business", "🔐 Admin"])
 
 # ------------------------------------------------------------
 # TAB 1 — BROWSE
@@ -289,3 +331,121 @@ with tab_add:
                     )
                     st.session_state.prefill_name = ""
                     st.session_state.prefill_address = ""
+
+# ------------------------------------------------------------
+# TAB 3 — ADMIN
+# Password-gated moderation panel. Approve/reject/verify submissions
+# without needing to leave the app and go into Supabase manually.
+# ------------------------------------------------------------
+with tab_admin:
+    ADMIN_PASSWORD = st.secrets.get("ADMIN_PASSWORD", None)
+
+    if not ADMIN_PASSWORD:
+        st.error(
+            "Admin panel is not configured. Add `ADMIN_PASSWORD` to your app secrets "
+            "to enable this tab."
+        )
+    elif not st.session_state.admin_authed:
+        st.subheader("Admin Login")
+        pw_input = st.text_input("Password", type="password", key="admin_pw_input")
+        if st.button("Log In"):
+            if pw_input == ADMIN_PASSWORD:
+                st.session_state.admin_authed = True
+                st.rerun()
+            else:
+                st.error("Incorrect password.")
+    else:
+        col_head, col_logout = st.columns([4, 1])
+        with col_head:
+            st.subheader("Moderation Queue")
+        with col_logout:
+            if st.button("Log Out"):
+                st.session_state.admin_authed = False
+                st.rerun()
+
+        status_tab_pending, status_tab_approved, status_tab_rejected = st.tabs(
+            ["🕓 Pending", "✅ Approved", "❌ Rejected"]
+        )
+
+        # --- Pending submissions: approve or reject ---
+        with status_tab_pending:
+            pending = fetch_by_status("pending")
+            if pending.empty:
+                st.info("No pending submissions. You're all caught up.")
+            else:
+                st.caption(f"{len(pending)} submission(s) awaiting review")
+                for _, biz in pending.iterrows():
+                    with st.container(border=True):
+                        c1, c2 = st.columns([3, 1])
+                        with c1:
+                            st.markdown(f"**{biz['business_name']}**")
+                            st.caption(f"{biz.get('category', '')} · {biz.get('country_connection', '')}")
+                            loc_parts = [p for p in [biz.get("address"), biz.get("city"), biz.get("state")] if p]
+                            if loc_parts:
+                                st.write(f"📍 {', '.join(loc_parts)}")
+                            if biz.get("description"):
+                                st.write(biz["description"])
+                            contact_bits = [
+                                f"📞 {biz['phone']}" if biz.get("phone") else None,
+                                f"✉️ {biz['email']}" if biz.get("email") else None,
+                                f"🔗 {biz['website']}" if biz.get("website") else None,
+                            ]
+                            st.caption(" · ".join(b for b in contact_bits if b))
+                            if biz.get("photo_url"):
+                                st.image(biz["photo_url"], width=200)
+                        with c2:
+                            if st.button("✅ Approve", key=f"approve_{biz['id']}", type="primary"):
+                                if update_status(biz["id"], "approved"):
+                                    st.success("Approved!")
+                                    st.rerun()
+                            if st.button("❌ Reject", key=f"reject_{biz['id']}"):
+                                if update_status(biz["id"], "rejected"):
+                                    st.warning("Rejected.")
+                                    st.rerun()
+
+        # --- Approved listings: toggle verified badge, or move back to pending/reject ---
+        with status_tab_approved:
+            approved = fetch_by_status("approved")
+            if approved.empty:
+                st.info("No approved listings yet.")
+            else:
+                st.caption(f"{len(approved)} live listing(s)")
+                for _, biz in approved.iterrows():
+                    with st.container(border=True):
+                        c1, c2, c3 = st.columns([3, 1, 1])
+                        with c1:
+                            badge = "✅ Verified" if biz.get("is_verified") else "— Not verified"
+                            st.markdown(f"**{biz['business_name']}** · {badge}")
+                            st.caption(f"{biz.get('city', '')}, {biz.get('state', '')}")
+                        with c2:
+                            is_verified = bool(biz.get("is_verified"))
+                            new_val = st.checkbox(
+                                "Verified", value=is_verified, key=f"verify_{biz['id']}"
+                            )
+                            if new_val != is_verified:
+                                if toggle_verified(biz["id"], new_val):
+                                    st.rerun()
+                        with c3:
+                            if st.button("Remove", key=f"remove_{biz['id']}"):
+                                if update_status(biz["id"], "rejected"):
+                                    st.warning("Removed from directory.")
+                                    st.rerun()
+
+        # --- Rejected: allow re-approval if you change your mind ---
+        with status_tab_rejected:
+            rejected = fetch_by_status("rejected")
+            if rejected.empty:
+                st.info("No rejected submissions.")
+            else:
+                st.caption(f"{len(rejected)} rejected submission(s)")
+                for _, biz in rejected.iterrows():
+                    with st.container(border=True):
+                        c1, c2 = st.columns([3, 1])
+                        with c1:
+                            st.markdown(f"**{biz['business_name']}**")
+                            st.caption(f"{biz.get('city', '')}, {biz.get('state', '')}")
+                        with c2:
+                            if st.button("↩️ Restore & Approve", key=f"restore_{biz['id']}"):
+                                if update_status(biz["id"], "approved"):
+                                    st.success("Restored!")
+                                    st.rerun()
