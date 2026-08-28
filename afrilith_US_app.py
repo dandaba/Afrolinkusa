@@ -84,7 +84,7 @@ def search_google_places(query: str, max_results: int = 5) -> list:
 # ============================================================
 def fetch_businesses(category: str = None, state: str = None, search: str = None) -> pd.DataFrame:
     """Fetch approved businesses matching filters."""
-    query = supabase.table("businesses").select("*").eq("status", "approved")
+    query = supabase.table("afrousa_business").select("*").eq("status", "approved")
 
     if category and category != "All Categories":
         query = query.eq("category", category)
@@ -118,7 +118,7 @@ def submit_business(data: dict) -> bool:
         data["status"] = "pending"
         data["is_verified"] = False
         data["created_at"] = datetime.utcnow().isoformat()
-        supabase.table("businesses").insert(data).execute()
+        supabase.table("afrousa_business").insert(data).execute()
         return True
     except Exception as e:
         st.error(f"Submission failed: {e}")
