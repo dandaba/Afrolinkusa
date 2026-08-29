@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AfroLink USA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --indigo-night: #1B2A4A;
+    --indigo-deep:  #0F1830;
+    --sand:         #EDE3CE;
+    --sand-dim:     #D9CCAE;
+    --gold:         #C89B3C;
+    --clay:         #B0552F;
+    --green:        #4C7A5E;
+    --ink:          #16223D;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--indigo-deep);
+    color: var(--sand);
+    font-family: 'IBM Plex Sans', sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- NAV ---------- */
+  .nav {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 1.5rem 0;
+  }
+  .wordmark {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    letter-spacing: 0.04em;
+    color: var(--sand);
+  }
+  .wordmark span { color: var(--gold); }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 1rem;
+    text-align: center;
+  }
+
+  .threads {
+    width: 100%;
+    max-width: 480px;
+    height: auto;
+    display: block;
+    margin: 0 auto 1.25rem;
+  }
+  .thread-path {
+    fill: none;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 620;
+    stroke-dashoffset: 620;
+    animation: draw 1.4s ease-out forwards;
+  }
+  .thread-path.b { animation-delay: 0.15s; }
+
+  @keyframes draw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: clamp(1.9rem, 4.5vw, 2.75rem);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    color: var(--sand);
+    margin-bottom: 0.9rem;
+  }
+
+  .hero p {
+    color: var(--sand-dim);
+    font-size: 1.05rem;
+    max-width: 46ch;
+    margin: 0 auto;
+  }
+
+  /* ---------- PANELS ---------- */
+  .panels {
+    max-width: 960px;
+    margin: 3rem auto 0;
+    padding: 0 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .panel {
+    background: var(--sand);
+    color: var(--ink);
+    border-radius: 14px;
+    padding: 2rem 1.75rem 1.85rem;
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .panel:hover,
+  .panel:focus-visible {
+    transform: translateY(-4px);
+  }
+
+  .panel:focus-visible {
+    outline: 3px solid var(--gold);
+    outline-offset: 3px;
+  }
+
+  .panel-agoa:hover { border-color: var(--clay); box-shadow: 0 12px 28px -12px rgba(176,85,47,0.45); }
+  .panel-directory:hover { border-color: var(--green); box-shadow: 0 12px 28px -12px rgba(76,122,94,0.45); }
+
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.85rem;
+  }
+  .panel-agoa .eyebrow { color: var(--clay); }
+  .panel-directory .eyebrow { color: var(--green); }
+
+  .panel h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 1.4rem;
+    line-height: 1.25;
+    margin-bottom: 0.6rem;
+  }
+
+  .panel > p.desc {
+    font-size: 0.95rem;
+    color: #4A4436;
+    margin-bottom: 1.1rem;
+  }
+
+  .panel ul {
+    list-style: none;
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+  }
+  .panel li {
+    font-size: 0.9rem;
+    color: var(--ink);
+    padding-left: 1.1rem;
+    position: relative;
+    margin-bottom: 0.5rem;
+  }
+  .panel li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.5em;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .panel-agoa li::before { background: var(--clay); }
+  .panel-directory li::before { background: var(--green); }
+
+  .cta {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .panel-agoa .cta { color: var(--clay); }
+  .panel-directory .cta { color: var(--green); }
+
+  .cta .arrow { transition: transform 0.2s ease; }
+  .panel:hover .cta .arrow { transform: translateX(3px); }
+
+  /* ---------- FOOTER ---------- */
+  footer {
+    max-width: 960px;
+    margin: 3.5rem auto 0;
+    padding: 1.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--sand-dim);
+    border-top: 1px solid rgba(237,227,206,0.12);
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 720px) {
+    .panels {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ---------- REDUCED MOTION ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .thread-path {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+    .panel, .panel:hover, .cta .arrow, .panel:hover .cta .arrow {
+      transition: none;
+      transform: none;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <nav class="nav">
+    <div class="wordmark">Afro<span>Link</span> USA</div>
+  </nav>
+
+  <section class="hero">
+    <svg class="threads" viewBox="0 0 480 110" aria-hidden="true">
+      <defs>
+        <linearGradient id="threadA" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#C89B3C"/>
+          <stop offset="100%" stop-color="#B0552F"/>
+        </linearGradient>
+        <linearGradient id="threadB" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#C89B3C"/>
+          <stop offset="100%" stop-color="#4C7A5E"/>
+        </linearGradient>
+      </defs>
+      <path class="thread-path a" d="M240,8 C150,8 85,70 60,102" stroke="url(#threadA)"/>
+      <path class="thread-path b" d="M240,8 C330,8 395,70 420,102" stroke="url(#threadB)"/>
+      <circle cx="240" cy="8" r="4" fill="#C89B3C"/>
+    </svg>
+
+    <h1>One route in. Two ways to use it.</h1>
+    <p>AfroLink USA connects trade compliance and community discovery under one roof — pick the tool built for what you need today.</p>
+  </section>
+
+  <section class="panels">
+
+    <!-- ============================================= -->
+    <!-- EDIT THIS: replace # with your live AGOA app URL -->
+    <!-- ============================================= -->
+    <a class="panel panel-agoa" href="afrinext-auditor
+.streamlit.app" target="_blank" rel="noopener">
+      <span class="eyebrow">Compliance Tool</span>
+      <h2>Check AGOA eligibility before you ship</h2>
+      <p class="desc">Screen shipments against HTS chapter, country of origin, and program-active dates.</p>
+      <ul>
+        <li>Upload a shipment list, get instant eligibility results</li>
+        <li>Downloadable eligibility certificate for your broker</li>
+        <li>Built for importers, exporters, and customs teams</li>
+      </ul>
+      <span class="cta">Open the Eligibility Checker <span class="arrow">→</span></span>
+    </a>
+
+    <!-- ================================================== -->
+    <!-- EDIT THIS: replace # with your live Directory app URL -->
+    <!-- ================================================== -->
+    <a class="panel panel-directory" href="afrolinkusa
+.streamlit.app" target="_blank" rel="noopener">
+      <span class="eyebrow">Community Directory</span>
+      <h2>Find African-owned businesses near you</h2>
+      <p class="desc">Restaurants, retail, beauty, and services — searchable by city and category.</p>
+      <ul>
+        <li>Every listing reviewed before it goes live</li>
+        <li>Filter by category, state, or keyword</li>
+        <li>List your own business free, in minutes</li>
+      </ul>
+      <span class="cta">Browse the Directory <span class="arrow">→</span></span>
+    </a>
+
+  </section>
+
+  <footer>
+    &copy; 2026 AfroLink USA. Two independent tools, one shared mission.
+  </footer>
+
+</body>
+</html>
