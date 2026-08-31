@@ -210,68 +210,92 @@ with tab_browse:
     with col3:
         state_filter = st.selectbox("State", ["All States"] + US_STATES)
 
-    results = fetch_businesses(
-        category=category_filter, state=state_filter, search=search_term
+    # Only query and show results once the visitor has actually made a
+    # selection — otherwise every business in the directory would load
+    # immediately on page visit, which isn't the intended landing experience.
+    has_made_selection = (
+        bool(search_term.strip())
+        or category_filter != "All Categories"
+        or state_filter != "All States"
     )
 
-    if results.empty:
-        st.info("No listings match your search yet.")
-
-        # Fallback: suggest businesses via Google Places if a search term was entered
-        if search_term and GOOGLE_PLACES_API_KEY:
-            location_hint = f" in {state_filter}" if state_filter != "All States" else ""
-            suggestions = search_google_places(f"{search_term}{location_hint}")
-
-            if suggestions:
-                st.markdown("#### 🔎 Found on Google — not yet in our directory")
-                st.caption("These aren't confirmed as African-owned. If one of these is your business, claim it below.")
-                for place in suggestions:
-                    name = place.get("displayName", {}).get("text", "Unknown")
-                    address = place.get("formattedAddress", "")
-                    with st.container(border=True):
-                        c1, c2 = st.columns([3, 1])
-                        with c1:
-                            st.markdown(f"**{name}**")
-                            st.caption(address)
-                        with c2:
-                            if st.button("Claim / Add", key=f"claim_{place.get('id')}"):
-                                st.session_state.prefill_name = name
-                                st.session_state.prefill_address = address
-                                st.session_state.active_tab = 1
-                                st.rerun()
-        elif search_term and not GOOGLE_PLACES_API_KEY:
-            st.caption(
-                "💡 Tip: Google Places suggestions are disabled — add a "
-                "`GOOGLE_PLACES_API_KEY` to secrets to enable fallback search."
+    if not has_made_selection:
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_a, col_b, col_c = st.columns([1, 2, 1])
+        with col_b:
+            st.markdown(
+                "<div style='text-align:center; padding: 2rem 0;'>"
+                "<div style='font-size:3.5rem;'>🔎</div>"
+                "<h3>Start exploring</h3>"
+                "<p style='color:#666;'>Search by name, description, or city — or pick a "
+                "category and state above — to see African-owned businesses near you.</p>"
+                "</div>",
+                unsafe_allow_html=True,
             )
-    else:
-        st.success(f"Found **{len(results)}** business{'es' if len(results) != 1 else ''}")
 
-        for _, biz in results.iterrows():
-            with st.container(border=True):
-                c1, c2 = st.columns([1, 3])
-                with c1:
-                    photo = biz.get("photo_url")
-                    if isinstance(photo, str) and photo.strip():
-                        st.image(photo, use_container_width=True)
-                    else:
-                        st.markdown("### 🏪")
-                with c2:
-                    badge = "✅ Verified" if biz.get("is_verified") else ""
-                    st.markdown(f"### {biz['business_name']} {badge}")
-                    st.caption(f"{biz.get('category', '')} · {biz.get('country_connection', '')}")
-                    if biz.get("description"):
-                        st.write(biz["description"])
-                    loc_parts = [p for p in [biz.get("address"), biz.get("city"), biz.get("state")] if p]
-                    if loc_parts:
-                        st.write(f"📍 {', '.join(loc_parts)}")
-                    contact_cols = st.columns(3)
-                    if biz.get("phone"):
-                        contact_cols[0].write(f"📞 {biz['phone']}")
-                    if biz.get("website"):
-                        contact_cols[1].markdown(f"[🔗 Website]({biz['website']})")
-                    if biz.get("email"):
-                        contact_cols[2].write(f"✉️ {biz['email']}")
+    else:
+        results = fetch_businesses(
+            category=category_filter, state=state_filter, search=search_term
+        )
+
+        if results.empty:
+            st.info("No listings match your search yet.")
+
+            # Fallback: suggest businesses via Google Places if a search term was entered
+            if search_term and GOOGLE_PLACES_API_KEY:
+                location_hint = f" in {state_filter}" if state_filter != "All States" else ""
+                suggestions = search_google_places(f"{search_term}{location_hint}")
+
+                if suggestions:
+                    st.markdown("#### 🔎 Found on Google — not yet in our directory")
+                    st.caption("These aren't confirmed as African-owned. If one of these is your business, claim it below.")
+                    for place in suggestions:
+                        name = place.get("displayName", {}).get("text", "Unknown")
+                        address = place.get("formattedAddress", "")
+                        with st.container(border=True):
+                            c1, c2 = st.columns([3, 1])
+                            with c1:
+                                st.markdown(f"**{name}**")
+                                st.caption(address)
+                            with c2:
+                                if st.button("Claim / Add", key=f"claim_{place.get('id')}"):
+                                    st.session_state.prefill_name = name
+                                    st.session_state.prefill_address = address
+                                    st.session_state.active_tab = 1
+                                    st.rerun()
+            elif search_term and not GOOGLE_PLACES_API_KEY:
+                st.caption(
+                    "💡 Tip: Google Places suggestions are disabled — add a "
+                    "`GOOGLE_PLACES_API_KEY` to secrets to enable fallback search."
+                )
+        else:
+            st.success(f"Found **{len(results)}** business{'es' if len(results) != 1 else ''}")
+
+            for _, biz in results.iterrows():
+                with st.container(border=True):
+                    c1, c2 = st.columns([1, 3])
+                    with c1:
+                        photo = biz.get("photo_url")
+                        if isinstance(photo, str) and photo.strip():
+                            st.image(photo, use_container_width=True)
+                        else:
+                            st.markdown("### 🏪")
+                    with c2:
+                        badge = "✅ Verified" if biz.get("is_verified") else ""
+                        st.markdown(f"### {biz['business_name']} {badge}")
+                        st.caption(f"{biz.get('category', '')} · {biz.get('country_connection', '')}")
+                        if biz.get("description"):
+                            st.write(biz["description"])
+                        loc_parts = [p for p in [biz.get("address"), biz.get("city"), biz.get("state")] if p]
+                        if loc_parts:
+                            st.write(f"📍 {', '.join(loc_parts)}")
+                        contact_cols = st.columns(3)
+                        if biz.get("phone"):
+                            contact_cols[0].write(f"📞 {biz['phone']}")
+                        if biz.get("website"):
+                            contact_cols[1].markdown(f"[🔗 Website]({biz['website']})")
+                        if biz.get("email"):
+                            contact_cols[2].write(f"✉️ {biz['email']}")
 
 # ------------------------------------------------------------
 # TAB 2 — ADD YOUR BUSINESS
