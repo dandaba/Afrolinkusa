@@ -94,6 +94,13 @@ def fetch_businesses(category: str = None, state: str = None, search: str = None
     try:
         result = query.execute()
         df = pd.DataFrame(result.data)
+        # Supabase returns JSON null for empty fields, but building a DataFrame
+        # from that can turn null into NaN instead of None. NaN is TRUTHY in
+        # Python (bool(float('nan')) == True), so `if biz.get("photo_url"):`
+        # checks would incorrectly pass and crash st.image() on a stray float.
+        # Normalize every NaN back to a real None right here, once, so every
+        # downstream `if biz.get(...)` check behaves correctly.
+        df = df.astype(object).where(df.notnull(), None)
     except Exception as e:
         st.error(f"Could not load listings: {e}")
         return pd.DataFrame()
@@ -135,7 +142,11 @@ def fetch_by_status(status: str) -> pd.DataFrame:
             .order("created_at", desc=True)
             .execute()
         )
-        return pd.DataFrame(result.data)
+        df = pd.DataFrame(result.data)
+        # Same NaN-to-None fix as fetch_businesses() — see comment there for why
+        # this matters (NaN is truthy, unlike None, and crashes st.image()).
+        df = df.astype(object).where(df.notnull(), None)
+        return df
     except Exception as e:
         st.error(f"Could not load submissions: {e}")
         return pd.DataFrame()
@@ -240,8 +251,9 @@ with tab_browse:
             with st.container(border=True):
                 c1, c2 = st.columns([1, 3])
                 with c1:
-                    if biz.get("photo_url"):
-                        st.image(biz["photo_url"], use_container_width=True)
+                    photo = biz.get("photo_url")
+                    if isinstance(photo, str) and photo.strip():
+                        st.image(photo, use_container_width=True)
                     else:
                         st.markdown("### 🏪")
                 with c2:
@@ -391,8 +403,9 @@ with tab_admin:
                                 f"🔗 {biz['website']}" if biz.get("website") else None,
                             ]
                             st.caption(" · ".join(b for b in contact_bits if b))
-                            if biz.get("photo_url"):
-                                st.image(biz["photo_url"], width=200)
+                            photo = biz.get("photo_url")
+                            if isinstance(photo, str) and photo.strip():
+                                st.image(photo, width=200)
                         with c2:
                             if st.button("✅ Approve", key=f"approve_{biz['id']}", type="primary"):
                                 if update_status(biz["id"], "approved"):
