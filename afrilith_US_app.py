@@ -3,6 +3,7 @@ import pandas as pd
 from supabase import create_client
 from datetime import datetime
 import requests
+from rapidfuzz import fuzz
 
 # ============================================================
 # 1. CONFIGURATION & CLIENTS
@@ -108,14 +109,36 @@ def fetch_businesses(category: str = None, state: str = None, search: str = None
     if df.empty:
         return df
 
-    if search:
+    if search and search.strip():
         s = search.strip().lower()
-        mask = (
-            df["business_name"].str.lower().str.contains(s, na=False) |
-            df["description"].fillna("").str.lower().str.contains(s, na=False) |
-            df["city"].fillna("").str.lower().str.contains(s, na=False)
+
+        def match_score(row) -> float:
+            """Best fuzzy-match score (0-100) across every searchable field.
+            partial_ratio finds the best-aligned substring match, which is
+            what we want for a short search query against longer business
+            names/descriptions — WRatio was tested and rejected here because
+            it dilutes short typos against long description text (e.g. a
+            typo'd "jolof" failed to match "jollof rice" in a full sentence).
+            Known tradeoff: multi-word queries can partially match on word
+            fragments (e.g. "west african" partially matches any business
+            with just "African" in its name). Acceptable at current scale;
+            would need token-based matching to fully avoid."""
+            fields = [
+                str(row.get("business_name") or ""),
+                str(row.get("description") or ""),
+                str(row.get("city") or ""),
+                str(row.get("category") or ""),
+                str(row.get("country_connection") or ""),
+            ]
+            scores = [fuzz.partial_ratio(s, f.lower()) for f in fields if f]
+            return max(scores) if scores else 0
+
+        FUZZY_THRESHOLD = 75  # 0-100; tuned against real business data — see chat
+        df["_match_score"] = df.apply(match_score, axis=1)
+        df = df[df["_match_score"] >= FUZZY_THRESHOLD].sort_values(
+            "_match_score", ascending=False
         )
-        df = df[mask]
+        df = df.drop(columns=["_match_score"])
 
     return df
 
